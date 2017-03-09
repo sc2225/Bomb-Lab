@@ -1,0 +1,29 @@
+Using objdump -d bomb | more to look at the assembly code for the next phase:
+
+0000000000400f0c <phase_2>:
+  400f0c:       55                      push   %rbp
+  400f0d:       53                      push   %rbx
+  400f0e:       48 83 ec 28             sub    $0x28,%rsp //makes a stack frame of 56 bytes
+  400f12:       48 89 e6                mov    %rsp,%rsi 
+  400f15:       e8 90 06 00 00          callq  4015aa <read_six_numbers> //We see that this phase wants an input of 6 numbers.
+  400f1a:       83 3c 24 01             cmpl   $0x1,(%rsp)
+  400f1e:       74 20                   je     400f40 <phase_2+0x34>
+  400f20:       e8 4f 06 00 00          callq  401574 <explode_bomb>
+  400f25:       eb 19                   jmp    400f40 <phase_2+0x34>
+  400f27:       8b 43 fc                mov    -0x4(%rbx),%eax
+  400f2a:       01 c0                   add    %eax,%eax
+  400f2c:       39 03                   cmp    %eax,(%rbx)
+  400f2e:       74 05                   je     400f35 <phase_2+0x29>
+  400f30:       e8 3f 06 00 00          callq  401574 <explode_bomb>
+  400f35:       48 83 c3 04             add    $0x4,%rbx
+  400f39:       48 39 eb                cmp    %rbp,%rbx
+  400f3c:       75 e9                   jne    400f27 <phase_2+0x1b>
+  400f3e:       eb 0c                   jmp    400f4c <phase_2+0x40>
+  400f40:       48 8d 5c 24 04          lea    0x4(%rsp),%rbx
+  400f45:       48 8d 6c 24 18          lea    0x18(%rsp),%rbp
+  400f4a:       eb db                   jmp    400f27 <phase_2+0x1b>
+  400f4c:       48 83 c4 28             add    $0x28,%rsp
+  400f50:       5b                      pop    %rbx
+  400f51:       5d                      pop    %rbp
+  400f52:       c3                      retq   
+
