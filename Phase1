@@ -5,7 +5,8 @@
     Starting program: /home/chh/bomb8/bomb 
     Welcome to my fiendish little bomb. You have 6 phases with
     which to blow yourself up. Have a nice day!
-    hi
+    hi                              
+    
     Breakpoint 1, 0x0000000000400ef0 in phase_1 ()
     (gdb) disas
     Dump of assembler code for function phase_1:
@@ -66,3 +67,66 @@ Dump of assembler code for function strings_not_equal:
    0x0000000000401374 <+102>:   pop    %r12
    0x0000000000401376 <+104>:   retq   
 End of assembler dump.
+
+<Strings_not_equal> doesnt have a call to bomb so it's okay to execute. Looking at %eax, we see it is = 1, so it will call the bomb.
+
+Dump of assembler code for function phase_1:
+   0x0000000000400ef0 <+0>:     sub    $0x8,%rsp
+   0x0000000000400ef4 <+4>:     mov    $0x4024bc,%esi
+   0x0000000000400ef9 <+9>:     callq  0x40130e <strings_not_equal>
+=> 0x0000000000400efe <+14>:    test   %eax,%eax
+   0x0000000000400f00 <+16>:    je     0x400f07 <phase_1+23>
+   0x0000000000400f02 <+18>:    callq  0x401574 <explode_bomb>
+   0x0000000000400f07 <+23>:    add    $0x8,%rsp
+   0x0000000000400f0b <+27>:    retq   
+End of assembler dump.
+(gdb) i r
+rax            0x1      1       //will call the bomb as 1&1 will not give back zero
+rbx            0x0      0
+rcx            0x2      2
+rdx            0x1      1
+
+Lets try using the string we found in the disassembler code and see the value of %eax for it:
+"Crikey! I have lost my mojo!"
+
+            (gdb) b phase_1
+            Breakpoint 1 at 0x400ef0
+            (gdb) r
+            Starting program: /home/chh/bomb8/bomb 
+            Welcome to my fiendish little bomb. You have 6 phases with
+            which to blow yourself up. Have a nice day!
+            Crikey! I have lost my mojo!             
+
+            Breakpoint 1, 0x0000000000400ef0 in phase_1 ()
+            (gdb) disas
+            Dump of assembler code for function phase_1:
+            => 0x0000000000400ef0 <+0>:     sub    $0x8,%rsp
+               0x0000000000400ef4 <+4>:     mov    $0x4024bc,%esi
+               0x0000000000400ef9 <+9>:     callq  0x40130e <strings_not_equal>
+               0x0000000000400efe <+14>:    test   %eax,%eax
+               0x0000000000400f00 <+16>:    je     0x400f07 <phase_1+23>
+               0x0000000000400f02 <+18>:    callq  0x401574 <explode_bomb>
+               0x0000000000400f07 <+23>:    add    $0x8,%rsp
+               0x0000000000400f0b <+27>:    retq   
+            End of assembler dump.
+            (gdb) ni 3
+            0x0000000000400efe in phase_1 ()
+            (gdb) disas
+            Dump of assembler code for function phase_1:
+               0x0000000000400ef0 <+0>:     sub    $0x8,%rsp
+               0x0000000000400ef4 <+4>:     mov    $0x4024bc,%esi
+               0x0000000000400ef9 <+9>:     callq  0x40130e <strings_not_equal>
+            => 0x0000000000400efe <+14>:    test   %eax,%eax
+               0x0000000000400f00 <+16>:    je     0x400f07 <phase_1+23>
+               0x0000000000400f02 <+18>:    callq  0x401574 <explode_bomb>
+               0x0000000000400f07 <+23>:    add    $0x8,%rsp
+               0x0000000000400f0b <+27>:    retq   
+            End of assembler dump.
+            (gdb) i r
+            rax            0x0      0       //%rax is equal to 0! which means it will jump pass the explode_bomb.
+            rbx            0x0      0
+            rcx            0x1c     28
+ 
+
+So solution is Crikey! I have lost my mojo! 
+
