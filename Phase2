@@ -10,20 +10,133 @@ Using objdump -d bomb | more to look at the assembly code for the next phase:
   400f1e:       74 20                   je     400f40 <phase_2+0x34>
   400f20:       e8 4f 06 00 00          callq  401574 <explode_bomb>
   400f25:       eb 19                   jmp    400f40 <phase_2+0x34>
-  400f27:       8b 43 fc                mov    -0x4(%rbx),%eax
-  400f2a:       01 c0                   add    %eax,%eax
-  400f2c:       39 03                   cmp    %eax,(%rbx)
+  400f27:       8b 43 fc                mov    -0x4(%rbx),%eax 
+  400f2a:       01 c0                   add    %eax,%eax 
+  400f2c:       39 03                   cmp    %eax,(%rbx)        // We are comparing something here!
   400f2e:       74 05                   je     400f35 <phase_2+0x29>
   400f30:       e8 3f 06 00 00          callq  401574 <explode_bomb>
   400f35:       48 83 c3 04             add    $0x4,%rbx
-  400f39:       48 39 eb                cmp    %rbp,%rbx
+  400f39:       48 39 eb                cmp    %rbp,%rbx         //Comparing something here!
   400f3c:       75 e9                   jne    400f27 <phase_2+0x1b>
   400f3e:       eb 0c                   jmp    400f4c <phase_2+0x40>
-  400f40:       48 8d 5c 24 04          lea    0x4(%rsp),%rbx
+  400f40:       48 8d 5c 24 04          lea    0x4(%rsp),%rbx 
   400f45:       48 8d 6c 24 18          lea    0x18(%rsp),%rbp
   400f4a:       eb db                   jmp    400f27 <phase_2+0x1b>
-  400f4c:       48 83 c4 28             add    $0x28,%rsp
+  400f4c:       48 83 c4 28             add    $0x28,%rsp        // closing the stack frame
   400f50:       5b                      pop    %rbx
   400f51:       5d                      pop    %rbp
   400f52:       c3                      retq   
 
+Lets put in "1 2 3 4 5 6" as our test input and disas <read_six_numbers>:
+Dump of assembler code for function read_six_numbers:
+=> 0x00000000004015aa <+0>:     sub    $0x18,%rsp     //making a stack frame
+   0x00000000004015ae <+4>:     mov    %rsi,%rdx      
+   0x00000000004015b1 <+7>:     lea    0x4(%rsi),%rcx
+   0x00000000004015b5 <+11>:    lea    0x14(%rsi),%rax
+   0x00000000004015b9 <+15>:    mov    %rax,0x8(%rsp)
+   0x00000000004015be <+20>:    lea    0x10(%rsi),%rax
+   0x00000000004015c2 <+24>:    mov    %rax,(%rsp)
+   0x00000000004015c6 <+28>:    lea    0xc(%rsi),%r9
+   0x00000000004015ca <+32>:    lea    0x8(%rsi),%r8
+   0x00000000004015ce <+36>:    mov    $0x402799,%esi       //$0x402799 is being put into %esi which is compared to our input
+   0x00000000004015d3 <+41>:    mov    $0x0,%eax
+   0x00000000004015d8 <+46>:    callq  0x400c30 <__isoc99_sscanf@plt>
+   0x00000000004015dd <+51>:    cmp    $0x5,%eax         
+   0x00000000004015e0 <+54>:    jg     0x4015e7 <read_six_numbers+61>   //if %eax is greater than 5, then we pass explode bomb. 
+   0x00000000004015e2 <+56>:    callq  0x401574 <explode_bomb>      //Lets set breakpoint here as safety!
+   0x00000000004015e7 <+61>:    add    $0x18,%rsp
+   0x00000000004015eb <+65>:    retq   
+End of assembler dump.
+Lets check what 0x402799 is:
+
+(gdb) x/s 0x402799
+0x402799:       "%d %d %d %d %d %d"
+(gdb) 
+
+^^Must be the format of our answer, which is 6 digits with spaces in between. Looking at:
+   
+   0x00000000004015dd <+51>:    cmp    $0x5,%eax         
+   0x00000000004015e0 <+54>:    jg     0x4015e7 <read_six_numbers+61> 
+   0x00000000004015e2 <+56>:    callq  0x401574 <explode_bomb>     
+   
+   We can see that its probably comparing our input format to the format in %esi. If we have more than 5 digits, aka 6, we can pass
+   the explode bomb. Lets see if this works for our "1 2 3 4 5 6":
+   
+       0x00000000004015e0 <+54>:    jg     0x4015e7 <read_six_numbers+61>
+       0x00000000004015e2 <+56>:    callq  0x401574 <explode_bomb>
+    => 0x00000000004015e7 <+61>:    add    $0x18,%rsp
+       0x00000000004015eb <+65>:    retq   
+    End of assembler dump.
+
+We pass the bomb! So the format is definitely %d %d %d %d %d %d.
+
+Lets look at what the compare statement is comparing:
+gdb) disas
+Dump of assembler code for function phase_2:
+   0x0000000000400f0c <+0>:     push   %rbp
+   0x0000000000400f0d <+1>:     push   %rbx
+   0x0000000000400f0e <+2>:     sub    $0x28,%rsp
+   0x0000000000400f12 <+6>:     mov    %rsp,%rsi
+   0x0000000000400f15 <+9>:     callq  0x4015aa <read_six_numbers>
+   0x0000000000400f1a <+14>:    cmpl   $0x1,(%rsp)
+   0x0000000000400f1e <+18>:    je     0x400f40 <phase_2+52>
+   0x0000000000400f20 <+20>:    callq  0x401574 <explode_bomb>
+   0x0000000000400f25 <+25>:    jmp    0x400f40 <phase_2+52>
+   0x0000000000400f27 <+27>:    mov    -0x4(%rbx),%eax
+   0x0000000000400f2a <+30>:    add    %eax,%eax
+=> 0x0000000000400f2c <+32>:    cmp    %eax,(%rbx)
+   0x0000000000400f2e <+34>:    je     0x400f35 <phase_2+41>
+   0x0000000000400f30 <+36>:    callq  0x401574 <explode_bomb>
+   0x0000000000400f35 <+41>:    add    $0x4,%rbx
+   0x0000000000400f39 <+45>:    cmp    %rbp,%rbx
+   0x0000000000400f3c <+48>:    jne    0x400f27 <phase_2+27>
+   0x0000000000400f3e <+50>:    jmp    0x400f4c <phase_2+64>
+   0x0000000000400f40 <+52>:    lea    0x4(%rsp),%rbx
+   0x0000000000400f45 <+57>:    lea    0x18(%rsp),%rbp
+   0x0000000000400f4a <+62>:    jmp    0x400f27 <phase_2+27>
+   0x0000000000400f4c <+64>:    add    $0x28,%rsp
+   0x0000000000400f50 <+68>:    pop    %rbx
+   0x0000000000400f51 <+69>:    pop    %rbp
+   0x0000000000400f52 <+70>:    retq   
+End of assembler dump.
+(gdb) i r
+rax            0x2      2
+rbx            0x7fffffffe494   140737488348308    //lets examine this
+rcx            0x7fffffffe480   140737488348288
+rdx            0x7fffffffe4a4   140737488348324
+rsi            0x7fffffffde70   140737488346736
+rdi            0x1999999999999999       1844674407370955161
+rbp            0x7fffffffe4a8   0x7fffffffe4a8
+rsp            0x7fffffffe490   0x7fffffffe490
+r8             0x7ffff7dd5060   140737351864416
+r9             0x0      0
+
+(gdb) x/d 140737488348308
+0x7fffffffe494: 2
+
+So we see that %rax and %rbx are being compared and that they both equal 2. Since they are equal, we should be able to jump the bomb:
+   0x0000000000400f2c <+32>:    cmp    %eax,(%rbx)
+   0x0000000000400f2e <+34>:    je     0x400f35 <phase_2+41>
+   0x0000000000400f30 <+36>:    callq  0x401574 <explode_bomb>
+=> 0x0000000000400f35 <+41>:    add    $0x4,%rbx
+   0x0000000000400f39 <+45>:    cmp    %rbp,%rbx
+
+^^ We jumped over the bomb! if we keep going through the code, we go back to the compare statement at <+32> again. This time
+%rax = 4 and %rbx = 3. We can see that %rbx holds each digit that we inputted from "1 2 3 4 5 6". We are looping through each digit
+in our input and comparing it to the correct digits, which are in %rax. Since %rax != %rbx, we will call explode bomb:
+   0x0000000000400f27 <+27>:    mov    -0x4(%rbx),%eax
+   0x0000000000400f2a <+30>:    add    %eax,%eax
+   0x0000000000400f2c <+32>:    cmp    %eax,(%rbx)
+   0x0000000000400f2e <+34>:    je     0x400f35 <phase_2+41>
+=> 0x0000000000400f30 <+36>:    callq  0x401574 <explode_bomb>
+   0x0000000000400f35 <+41>:    add    $0x4,%rbx
+   0x0000000000400f39 <+45>:    cmp    %rbp,%rbx
+   
+Looking at <+30>, we see we are essentially doubling whatever was in %eax before when %eax = 4, which was 2. lets change our input to 
+"1 2 4 5 6 7" to see if we can pass this iteration for 4. ==> when we do this, adding 4 DOES pass this iteration of the loop. At this
+point, we can see at <+30> that we are doubling the previous %eax each time. So assuming this, lets try "1 2 4 8 16 32" as our input
+
+When we put "1 2 4 8 16 32" this works!!
+
+//Solution:
+1 2 4 8 16 32
