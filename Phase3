@@ -1,0 +1,149 @@
+Let's use "apples" as our random input:
+
+That's number 2.  Keep going!
+apples
+
+Breakpoint 1, 0x0000000000400f53 in phase_3 ()
+(gdb) disas
+Dump of assembler code for function phase_3:
+=> 0x0000000000400f53 <+0>:     sub    $0x18,%rsp     //makes stack 24 bytes
+   0x0000000000400f57 <+4>:     lea    0x8(%rsp),%rcx  
+   0x0000000000400f5c <+9>:     lea    0xc(%rsp),%rdx 
+   0x0000000000400f61 <+14>:    mov    $0x4027a5,%esi   //hmm, what are we moving from 0x4027a5?
+   0x0000000000400f66 <+19>:    mov    $0x0,%eax
+   0x0000000000400f6b <+24>:    callq  0x400c30 <__isoc99_sscanf@plt>  //function that takes input
+   0x0000000000400f70 <+29>:    cmp    $0x1,%eax                    //comparing 1 with result from input
+   0x0000000000400f73 <+32>:    jg     0x400f7a <phase_3+39>      //if %eax > 1 then jump pass explode bomb
+   0x0000000000400f75 <+34>:    callq  0x401574 <explode_bomb>
+  
+   0x0000000000400f7a <+39>:    cmpl   $0x7,0xc(%rsp)             //comparing 7 with value at 0xc(%rsp)
+   0x0000000000400f7f <+44>:    ja     0x400fbd <phase_3+106>     //jump to bomb if above 7
+   0x0000000000400f81 <+46>:    mov    0xc(%rsp),%eax           
+   0x0000000000400f85 <+50>:    jmpq   *0x4024e0(,%rax,8)       //this is a jump table
+   
+   0x0000000000400f8c <+57>:    mov    $0x1ed,%eax
+   0x0000000000400f91 <+62>:    jmp    0x400fce <phase_3+123>
+   
+   0x0000000000400f93 <+64>:    mov    $0x37e,%eax
+   0x0000000000400f98 <+69>:    jmp    0x400fce <phase_3+123>
+  
+   0x0000000000400f9a <+71>:    mov    $0x2a8,%eax
+   0x0000000000400f9f <+76>:    jmp    0x400fce <phase_3+123>
+   
+   0x0000000000400fa1 <+78>:    mov    $0x7c,%eax
+   0x0000000000400fa6 <+83>:    jmp    0x400fce <phase_3+123>
+   
+   0x0000000000400fa8 <+85>:    mov    $0x2b4,%eax
+   0x0000000000400fad <+90>:    jmp    0x400fce <phase_3+123>
+   
+   0x0000000000400faf <+92>:    mov    $0x318,%eax
+   0x0000000000400fb4 <+97>:    jmp    0x400fce <phase_3+123>
+   
+   0x0000000000400fb6 <+99>:    mov    $0x2a4,%eax
+   0x0000000000400fbb <+104>:   jmp    0x400fce <phase_3+123>
+   
+   0x0000000000400fbd <+106>:   callq  0x401574 <explode_bomb>
+   
+   0x0000000000400fc2 <+111>:   mov    $0x0,%eax
+   0x0000000000400fc7 <+116>:   jmp    0x400fce <phase_3+123>
+  
+   0x0000000000400fc9 <+118>:   mov    $0x129,%eax
+   
+   //We go to the bottom set of instructions after each case:
+   0x0000000000400fce <+123>:   cmp    0x8(%rsp),%eax           //compares $rsp+8 to $eax == %eax holds the answer!
+   0x0000000000400fd2 <+127>:   je     0x400fd9 <phase_3+134>
+   0x0000000000400fd4 <+129>:   callq  0x401574 <explode_bomb>
+   0x0000000000400fd9 <+134>:   add    $0x18,%rsp             //closes stack frame
+   0x0000000000400fdd <+138>:   retq   
+End of assembler dump.
+
+From above code, we can see this is a switch statement. I seperated each case with a space in between. Notice each case ends with 
+a call to 400fce which compares our second digit with the correct second digit
+
+Lets move the pointer to <+14> to figure out what 0x4027a5 is:
+(gdb) x/s 0x4027a5
+0x4027a5:       "%d %d"
+
+Lets also figure out what 0xc(%rsp) holds when pointer is at this instruction:
+0x0000000000400f7a <+39>:    cmpl   $0x7,0xc(%rsp)
+
+(gdb) x/d $rsp+0xc
+0x7fffffffe4ac: 2
+^^We see %rsp+0xc holds our first digit!
+
+Lets input "8 34":
+Dump of assembler code for function phase_3:
+   0x0000000000400f53 <+0>:     sub    $0x18,%rsp
+   0x0000000000400f57 <+4>:     lea    0x8(%rsp),%rcx
+   0x0000000000400f5c <+9>:     lea    0xc(%rsp),%rdx
+   0x0000000000400f61 <+14>:    mov    $0x4027a5,%esi
+   0x0000000000400f66 <+19>:    mov    $0x0,%eax
+   0x0000000000400f6b <+24>:    callq  0x400c30 <__isoc99_sscanf@plt>
+   0x0000000000400f70 <+29>:    cmp    $0x1,%eax
+   0x0000000000400f73 <+32>:    jg     0x400f7a <phase_3+39>
+   0x0000000000400f75 <+34>:    callq  0x401574 <explode_bomb>
+   0x0000000000400f7a <+39>:    cmpl   $0x7,0xc(%rsp)
+=> 0x0000000000400f7f <+44>:    ja     0x400fbd <phase_3+106>  //This will jump to bomb!!
+   0x0000000000400f81 <+46>:    mov    0xc(%rsp),%eax
+   0x0000000000400f85 <+50>:    jmpq   *0x4024e0(,%rax,8)
+
+8 will call the bomb!
+It looks like we are comparing our first digit. We want it to be greater than one, but less than 7. So lets try "2 35". 
+
+Dump of assembler code for function phase_3:
+   0x0000000000400f53 <+0>:     sub    $0x18,%rsp
+   0x0000000000400f57 <+4>:     lea    0x8(%rsp),%rcx
+   0x0000000000400f5c <+9>:     lea    0xc(%rsp),%rdx
+   0x0000000000400f61 <+14>:    mov    $0x4027a5,%esi
+   0x0000000000400f66 <+19>:    mov    $0x0,%eax
+   0x0000000000400f6b <+24>:    callq  0x400c30 <__isoc99_sscanf@plt>
+   0x0000000000400f70 <+29>:    cmp    $0x1,%eax
+   0x0000000000400f73 <+32>:    jg     0x400f7a <phase_3+39>
+   0x0000000000400f75 <+34>:    callq  0x401574 <explode_bomb>
+   0x0000000000400f7a <+39>:    cmpl   $0x7,0xc(%rsp)
+   0x0000000000400f7f <+44>:    ja     0x400fbd <phase_3+106>
+   0x0000000000400f81 <+46>:    mov    0xc(%rsp),%eax
+   0x0000000000400f85 <+50>:    jmpq   *0x4024e0(,%rax,8)
+   0x0000000000400f8c <+57>:    mov    $0x1ed,%eax
+   0x0000000000400f91 <+62>:    jmp    0x400fce <phase_3+123>
+   0x0000000000400f93 <+64>:    mov    $0x37e,%eax
+   0x0000000000400f98 <+69>:    jmp    0x400fce <phase_3+123>
+   0x0000000000400f9a <+71>:    mov    $0x2a8,%eax
+   0x0000000000400f9f <+76>:    jmp    0x400fce <phase_3+123>
+   0x0000000000400fa1 <+78>:    mov    $0x7c,%eax
+   0x0000000000400fa6 <+83>:    jmp    0x400fce <phase_3+123>
+   0x0000000000400fa8 <+85>:    mov    $0x2b4,%eax
+   0x0000000000400fad <+90>:    jmp    0x400fce <phase_3+123>
+   0x0000000000400faf <+92>:    mov    $0x318,%eax
+   0x0000000000400fb4 <+97>:    jmp    0x400fce <phase_3+123>
+   0x0000000000400fb6 <+99>:    mov    $0x2a4,%eax
+   0x0000000000400fbb <+104>:   jmp    0x400fce <phase_3+123>
+   0x0000000000400fbd <+106>:   callq  0x401574 <explode_bomb>
+   0x0000000000400fc2 <+111>:   mov    $0x0,%eax
+   0x0000000000400fc7 <+116>:   jmp    0x400fce <phase_3+123>
+   0x0000000000400fc9 <+118>:   mov    $0x129,%eax
+   0x0000000000400fce <+123>:   cmp    0x8(%rsp),%eax
+=> 0x0000000000400fd2 <+127>:   je     0x400fd9 <phase_3+134>
+   0x0000000000400fd4 <+129>:   callq  0x401574 <explode_bomb>
+   0x0000000000400fd9 <+134>:   add    $0x18,%rsp
+   0x0000000000400fdd <+138>:   retq   
+End of assembler dump.
+(gdb) i r
+rax            0x37e    894
+rbx            0x7fffffffe5a8   140737488348584
+rcx            0x20     32
+rdx            0x7fffffffe4a8   140737488348328
+rsi            0x7fffffffdea0   140737488346784
+
+
+^^ As we can see, our digit of 2 gets us pass that first requirement of the digit being between 1 and 7. Now we see that we are comparing
+%rax to 0x8(%rsp). Lets see whats in %rsp+8:
+
+(gdb) x/d $rsp+8
+0x7fffffffe4a8: 35
+
+It's our second digit! So it seems after the jump over the first bomb, we are comparing our second digit in the stack to a value our 
+switch table jumps to. Since we want our second digit to be 894, lets try it with an input of "2 894" --> this works!!
+
+Conclusion: We can get different possible answers depending on what we put as our first digit (between 1-7). Depending on the first digit,
+the jump table will indirectly jump to the correct second digit. 
