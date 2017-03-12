@@ -1,0 +1,117 @@
+Notice: We are probably passing in some sort of string
+
+Dump of assembler code for function phase_5:
+=> 0x0000000000401073 <+0>:     push   %rbx
+   0x0000000000401074 <+1>:     sub    $0x10,%rsp     
+   0x0000000000401078 <+5>:     mov    %rdi,%rbx         //%rdi = input
+   0x000000000040107b <+8>:     callq  0x4012f1 <string_length>
+   0x0000000000401080 <+13>:    cmp    $0x6,%eax                //we want <string_length> eax = 6
+   0x0000000000401083 <+16>:    je     0x4010c4 <phase_5+81>
+   0x0000000000401085 <+18>:    callq  0x401574 <explode_bomb>
+   0x000000000040108a <+23>:    jmp    0x4010c4 <phase_5+81>
+   
+   
+//<string_length>
+Dump of assembler code for function string_length:
+=> 0x00000000004012f1 <+0>:     cmpb   $0x0,(%rdi)   //rdi = string input. Checks to see if ANYTHING is inputed
+   0x00000000004012f4 <+3>:     je     0x401308 <string_length+23>
+   0x00000000004012f6 <+5>:     mov    %rdi,%rdx  //move string to rdx
+   0x00000000004012f9 <+8>:     add    $0x1,%rdx  //string + 1
+   0x00000000004012fd <+12>:    mov    %edx,%eax  //eax = string + 1
+   0x00000000004012ff <+14>:    sub    %edi,%eax  //eax = eax - string
+   0x0000000000401301 <+16>:    cmpb   $0x0,(%rdx)
+   0x0000000000401304 <+19>:    jne    0x4012f9 <string_length+8>
+   0x0000000000401306 <+21>:    repz retq 
+   0x0000000000401308 <+23>:    mov    $0x0,%eax
+   0x000000000040130d <+28>:    retq   
+End of assembler dump.
+
+^^Seems to give back length of our string.So we want our input to be a string of length 6. Lets try "flower" and see if we get pass the
+first <explode_bomb>:
+   0x000000000040107b <+8>:     callq  0x4012f1 <string_length>
+=> 0x0000000000401080 <+13>:    cmp    $0x6,%eax
+   0x0000000000401083 <+16>:    je     0x4010c4 <phase_5+81>
+   0x0000000000401085 <+18>:    callq  0x401574 <explode_bomb>
+
+(gdb) i r
+rax            0x6      6
+rbx            0x604900 6310144
+
+We see that at this point, %eax, which is from <string_length> equals 6. So <string_length> is definitely giving us the length of our
+string and we are making sure our input is 6 char long. So we now jump to 0x4010c4
+   0x00000000004010c4 <+81>:    mov    $0x0,%eax              //%eax = 0
+   0x00000000004010c9 <+86>:    jmp    0x40108c <phase_5+25>  
+   
+   And jump to 0x40108c:
+   
+   0x000000000040108c <+25>:    movzbl (%rbx,%rax,1),%edx     //%rbx = input, %rax = 0, $edx = 0 ; NOW: %edx = 102
+   0x0000000000401090 <+29>:    and    $0xf,%edx              //0xf&edx == 0xf & 0x66 = 6
+   0x0000000000401093 <+32>:    movzbl 0x402520(%rdx),%edx      //what is 0x402520
+   0x000000000040109a <+39>:    mov    %dl,(%rsp,%rax,1)
+   0x000000000040109d <+42>:    add    $0x1,%rax                //%rax = %rax + 1 == 0 + 1
+   0x00000000004010a1 <+46>:    cmp    $0x6,%rax                // rax != 6, jump
+   0x00000000004010a5 <+50>:    jne    0x40108c <phase_5+25>  //jump back up: LOOP
+   
+   ^^ Seems like we will loop 6 times. Here is what we get first and second iteration for 0x402520+$rdx:
+   1st:
+   (gdb) x 0x402520+$rdx
+    0x402592:       0x69      //is 'i' in ASCII
+   2nd: 
+   (gdb) x/x 0x402520+$rdx
+   0x402596:       0x6c       // 'l'
+   
+   Lets skip all the way down to <+62> and see what is being moved into <strings_not_equal>:
+    0x00000000004010ac <+57>:    mov    $0x4024d9,%esi
+=> 0x00000000004010b1 <+62>:    mov    %rsp,%rdi
+   0x00000000004010b4 <+65>:    callq  0x40130e <strings_not_equal>
+
+   (gdb) i r
+rax            0x6      6
+rbx            0x604900 6310144
+rcx            0x6      6
+rdx            0x64     100
+rsi            0x4024d9 4203737
+rdi            0x7fffffffe4a0   140737488348320
+
+(gdb) x/s 140737488348320
+0x7fffffffe4a0: "rvlsed"
+
+Lets go back and look at the other values passed in:
+
+   0x00000000004010a7 <+52>:    movb   $0x0,0x6(%rsp)
+   0x00000000004010ac <+57>:    mov    $0x4024d9,%esi       //what is 0x40249d
+   0x00000000004010b1 <+62>:    mov    %rsp,%rdi
+   0x00000000004010b4 <+65>:    callq  0x40130e <strings_not_equal>
+   0x00000000004010b9 <+70>:    test   %eax,%eax            //$eax&eax = if ZF then equals
+   0x00000000004010bb <+72>:    je     0x4010cb <phase_5+88>
+   0x00000000004010bd <+74>:    callq  0x401574 <explode_bomb>
+   0x00000000004010c2 <+79>:    jmp    0x4010cb <phase_5+88>
+   
+   0x00000000004010c4 <+81>:    mov    $0x0,%eax              //%eax = 0
+   0x00000000004010c9 <+86>:    jmp    0x40108c <phase_5+25>  
+   
+   0x00000000004010cb <+88>:    add    $0x10,%rsp
+   0x00000000004010cf <+92>:    pop    %rbx
+   0x00000000004010d0 <+93>:    retq   
+End of assembler dump.
+
+//Lets examine 0x402520:
+0x402520 <array.3160>:  "maduiersnfotvbylWow! You've defused the secret stage!"
+
+// Examine 0x4024d9
+(gdb) x/s 0x4024d9
+0x4024d9:       "devils"
+//<+32>
+(gdb) x 0x402520+$rdx
+0x402592:       0x69      //is 'i' in ASCII
+
+Solution:
+We are actually inputting a string that is equivalent to "devils". The code uses the char "maduiersnfotvbyl" as a way to map our inputted
+char to different char. So flower ends up being "rvlsed". We want something that will be the same as "devils" when un-encoded. What i did
+was mapped each char in the alphabet to their code. Then chose the ones that would spell out "devil". Ex: I inputted "abcdef", "ghijkl",..
+so on to get the respective mappings from %rdi just before <+65>.
+
+a- a    b-d     c-u    d-i    e-e    f-r   g-s    h-n    i-f    j-o     k-t     l-v     m-b     n-y    o-l     p-m     q-a     r-d
+s-u      t-i      u-e     v-r     w-s     x-n     y-f     z-o
+
+Since we want our input to be converted to "devils", We have a few possible answers: "beltow", "ruldog"
