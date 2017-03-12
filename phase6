@@ -1,0 +1,6 @@
+Looking at the assembly code, we see <read_six_numbers>, which tells us our input should probably be 6 numbers
+   0x00000000004010d8 <+7>:     push   %rbx
+   0x00000000004010d9 <+8>:     sub    $0x50,%rsp
+   0x00000000004010dd <+12>:    lea    0x30(%rsp),%r13
+   0x00000000004010e2 <+17>:    mov    %r13,%rsi
+=> 0x00000000004010e5 <+20>:    callq  0x4015aa <read_six_numbers>
