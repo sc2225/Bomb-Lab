@@ -1,6 +1,25 @@
 # Bomb-Lab
-<h1>DePaul University - System I</h1>
-<p>
-  <strong>Goal:</strong> Solve a total of 6 phases to defuse the bomb. Lab will go over gdb debugger and how to navigate it,
-how to read assembly code, and understanding control flow in assembly.
-</p>
+<h2>DePaul University - System I - Winter 2017</h2>
+
+  <ul><strong>Goals:</strong>
+    <li>Solve a total of 6 phases to defuse the bomb. Each phase has a password/key that is solved through the hints found within the assembly code.</li>
+    <li>Become familiar with Linux VM and Linux command-line</li>
+    <li>Use and navigate through gdb debugger to examine memory and registers, view assembly code, and set breakpoints within the gdb debugger</li>
+    <li>Read and understand low level assembly code</li>
+    <li>Understand control flow in assembly</li>
+</ul>
+
+<h3>Details on Grading for Bomb Lab</h3>
+
+<ul>Point breakdown for each phase:
+  <li>Phase 1 - 4: 10 points each</li>
+  <li>Phase 5 and 6: 15 points each</li>
+  <li><strong>Total maximum score possible: 70 points</strong></li>
+  </ul>
+  
+
+  Each time the "bomb explodes", it notifies the server, resulting in a (-)1/5 point deduction from the final score for the lab.
+<br>
+
+
+<a href="https://github.com/sc2225/Bomb-Lab/blob/master/bomblab.pdf">Link to Bomb Lab Instructions (pdf) in GitHub Repository</a> 
