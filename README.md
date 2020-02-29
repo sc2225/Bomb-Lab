@@ -1,6 +1,6 @@
 # Bomb-Lab
 <h2>DePaul University - System I - Winter 2017</h2>
-<h3>**Note: I made this repo with the intent to help others solve their own Bomb Labs and also showcase my thought process on how to come across the solutions for each. With that being said, please feel free to fork or star this repo if you find it helpful!***</h3>
+<h3>**Note: I made this repo with the intent to help others solve their own Bomb Labs. Please feel free to fork or star this repo if you find it helpful!***</h3>
 
   <ul><strong>Goals:</strong>
     <li>Solve a total of 6 phases to defuse the bomb. Each phase has a password/key that is solved through the hints found within the assembly code.</li>
